@@ -1,22 +1,22 @@
 import pandas as pd
 from pandas import json_normalize
 import json
-import os
-import sys
 
 
-def read_csv_from_raw(filename):
+def read_csv_from_raw(filename: str):
     """
     Reads CSV file from raw data by providing filename
+    :param: filename is the name of the file to import
     :return: DataFrame contains the data
     """
     data_df = pd.read_csv("../../data/raw/" + filename + ".csv")
     return data_df
 
 
-def read_json_from_raw(filename):
+def read_json_from_raw(filename: str):
     """
     Read JSON file from raw data by providing filename then convert it to DataFrame
+    :param: filename is the name of the file to import
     :return: DataFrame
     """
     with open("../../data/raw/" + filename + ".json", "r") as read_data:
@@ -30,6 +30,7 @@ def lots_perfect_state():
     """
     Function that returns the lots in perfect state after fetching the weighted estimation in the perfect state and then
     filtered with the whole lot after matching with lot ids
+    Create new column "price" which will contain the mean of low and high valuation
     :return: DataFrame of filtered lot with perfect state after matching
     """
     # Read the whole lot data
@@ -48,5 +49,37 @@ def lots_perfect_state():
 
     lots_id_filter = weighted_estimation_df['lotId']
     filtered_lots_df = lots_df.query('_id in @lots_id_filter')
-    return filtered_lots_df.info()
+    filtered_lots_df.reset_index(drop=True, inplace=True)
+    return filtered_lots_df.loc[:, filtered_lots_df.columns.intersection(['title','price', 'createdAt.$date'])]
 
+
+def wine_estimator_perfect_state():
+    """
+    Load data from raw folder of wine estimations
+    Create new column "price" which will contain the mean of min and max price of corrected or wine searcher estimation
+    :return: DataFrame of filtered filtered estimations with perfect state
+    """
+    # Read data from raw folder and pick specific columns
+    wine_estimator_df = read_csv_from_raw("wine_estimations")
+    wine_estimator_df = wine_estimator_df.loc[:, wine_estimator_df.columns.intersection(['wineName', 'correctedMin',
+                                                                                         'correctedMax',
+                                                                                         'wineSearcherMin',
+                                                                                         'wineSearcherMax',
+                                                                                         'idealWinePrice', 'date'])]
+
+    # Convert corrected min and max to hundreds to be standardized with the other prices
+    wine_estimator_df['correctedMin'], wine_estimator_df['correctedMax'] = wine_estimator_df['correctedMin'] * 100,\
+                                                                           wine_estimator_df['correctedMax'] * 100
+
+    # Create new column contains price which is the average of min and max corrected price
+    # If there is no corrected price fill it with mean of wine searcher min and max idealWinePrice
+    # else fill it with idealwine price
+    wine_estimator_df['price'] = wine_estimator_df.loc[:, ('correctedMin', 'correctedMax')].mean(axis=1)
+    wine_estimator_df['price'].fillna(wine_estimator_df.loc[:, ('wineSearcherMin', 'wineSearcherMax')].mean(axis=1),
+                                      inplace=True)
+    wine_estimator_df['price'].fillna(wine_estimator_df['idealWinePrice'], inplace=True)
+
+    return wine_estimator_df.loc[:, wine_estimator_df.columns.intersection(['wineName','price', 'date'])]
+
+
+# print(lots_perfect_state())
