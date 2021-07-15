@@ -2,7 +2,6 @@ import pandas as pd
 from fuzzywuzzy import fuzz
 from fuzzywuzzy import process
 from src.data.toolbox import get_year, strip_accents
-from src.data.preprocess_data import wine_estimator_perfect_state, lots_perfect_state
 import numpy as np
 
 
@@ -39,8 +38,8 @@ class WineFuzzyMatch:
         :param filename: the name of the file that contains the correct names
         :return: list of wine names
         """
-        df = pd.read_excel('../../data/external/wine-names/' + filename + '.xlsx')
-        wine_names = df['wine_name'].tolist()
+        df_name = pd.read_excel('../../data/external/wine-names/' + filename + '.xlsx')
+        wine_names = df_name['wine_name'].tolist()
         return wine_names
 
     def checker(self, data, column: str):
@@ -69,12 +68,3 @@ class WineFuzzyMatch:
         data['normalized_name'] = np.asarray(names_array)
         data['vintage'] = np.asarray(vintage_array)
         return data
-
-
-fuzzy_match = WineFuzzyMatch()
-# df = wine_estimator_perfect_state()
-df1 = lots_perfect_state()
-# new_df = fuzzy_match.checker(df, "wineName")
-new_df = fuzzy_match.checker(df1, "title")
-
-print(new_df[['normalized_name','vintage','price']])

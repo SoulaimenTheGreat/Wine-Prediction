@@ -1,8 +1,10 @@
 import pandas as pd
 from pandas import json_normalize
 import json
+from dagster import solid
 
 
+@solid
 def read_csv_from_raw(filename: str):
     """
     Reads CSV file from raw data by providing filename
@@ -13,6 +15,7 @@ def read_csv_from_raw(filename: str):
     return data_df
 
 
+@solid
 def read_json_from_raw(filename: str):
     """
     Read JSON file from raw data by providing filename then convert it to DataFrame
@@ -26,19 +29,14 @@ def read_json_from_raw(filename: str):
     return data_df
 
 
-def lots_perfect_state():
+@solid
+def process_lots_perfect_state(lots_df, weighted_estimation_df):
     """
     Function that returns the lots in perfect state after fetching the weighted estimation in the perfect state and then
     filtered with the whole lot after matching with lot ids
     Create new column "price" which will contain the mean of low and high valuation
     :return: DataFrame of filtered lot with perfect state after matching
     """
-    # Read the whole lot data
-    lots_df = read_json_from_raw("lots")
-
-    # Read the weighted estimation in perfect state data
-    weighted_estimation_df = read_csv_from_raw("weighted_wine_estimations")
-
     # Get specific columns for lot dataframe
     lots_df = lots_df.loc[:, lots_df.columns.intersection(['_id', 'title', 'lowValuation.amount', 'highValuation.amount'
                                                               , 'minimumPrice.amount', 'createdAt.$date'])]
@@ -53,14 +51,13 @@ def lots_perfect_state():
     return filtered_lots_df.loc[:, filtered_lots_df.columns.intersection(['title','price', 'createdAt.$date'])]
 
 
-def wine_estimator_perfect_state():
+@solid
+def process_estimator_perfect_state(wine_estimator_df):
     """
     Load data from raw folder of wine estimations
     Create new column "price" which will contain the mean of min and max price of corrected or wine searcher estimation
     :return: DataFrame of filtered filtered estimations with perfect state
     """
-    # Read data from raw folder and pick specific columns
-    wine_estimator_df = read_csv_from_raw("wine_estimations")
     wine_estimator_df = wine_estimator_df.loc[:, wine_estimator_df.columns.intersection(['wineName', 'correctedMin',
                                                                                          'correctedMax',
                                                                                          'wineSearcherMin',
@@ -82,4 +79,13 @@ def wine_estimator_perfect_state():
     return wine_estimator_df.loc[:, wine_estimator_df.columns.intersection(['wineName','price', 'date'])]
 
 
-# print(lots_perfect_state())
+@solid
+def process_wine_quotation(wine_quotation_df):
+    """
+    Load data from raw folder of wine quotaions table
+    :return: DataFrame that contains filtered columns
+    """
+    # Read data from raw folder and pick specific columns
+    wine_quotation_df = wine_quotation_df.loc[:, wine_quotation_df.columns.intersection(
+        ['name', 'field_vintage_value', 'field_price_amount', 'field_date_value'])]
+    return wine_quotation_df
