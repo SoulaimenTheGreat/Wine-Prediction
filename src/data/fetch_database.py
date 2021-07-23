@@ -3,6 +3,7 @@ from pymongo import MongoClient
 from dotenv import load_dotenv
 import os
 import pandas as pd
+from dagster import solid
 
 
 def load_env_variables():
@@ -55,7 +56,7 @@ def configure_database_collection(collection_name: str):
 #         "date": estimation["date"],
 #     }
 
-
+@solid
 def retrieve_filtered_estimations(collection_name: str, condition: dict):
     """
     Retrieve records from mongo database by passing collection name and condition for filtering
@@ -70,6 +71,7 @@ def retrieve_filtered_estimations(collection_name: str, condition: dict):
     return filtered_estimations
 
 
+@solid
 def convert_to_csv(collection_name: str, condition: dict, filename: str):
     """
     Convert the retrieved data from the database to csv format by passing collection name, condition, and filename in
@@ -77,7 +79,7 @@ def convert_to_csv(collection_name: str, condition: dict, filename: str):
     """
     records = retrieve_filtered_estimations(collection_name, condition)
     records_df = pd.DataFrame.from_records(records)
-    records_df.to_csv(path_or_buf="/home/soulaimen/PycharmProjects/wineestimation/data/raw/" + filename + ".csv",
+    records_df.to_csv(path_or_buf="../../data/raw/" + filename + ".csv",
                       index=False)
 
 
